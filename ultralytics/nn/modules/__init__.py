@@ -57,6 +57,9 @@ from .block import (
     ResNetLayer,
     SCDown,
     SB,
+    ResidualOp,
+    DilatedCBS,
+    C3DFormer,
 )
 from .conv import (
     CBAM,
@@ -158,4 +161,5 @@ __all__ = (
     "Attention",
     "PSA",
     "ESP",
+    "ResidualOp"
 )

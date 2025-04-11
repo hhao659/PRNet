@@ -50,14 +50,94 @@ __all__ = (
     "PSA",
     "SCDown",
     "SB",
+    "ResidualOp",
+    "DilatedCBS",
+    "C3DFormer"
 )
+
+class DilatedCBS(nn.Module):
+    """Dilated Convolution with BN + SiLU."""
+    def __init__(self, c1, c2, k=3, s=1, d=2):
+        super().__init__()
+        padding = d * (k - 1) // 2
+        self.conv = nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=padding, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = nn.SiLU()
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+
+class C3DFormer(nn.Module):
+    """Custom Block (Split + DilatedConv + Bottleneck + Shuffle)."""
+
+    def __init__(self, c1, c2, shortcut=True):
+        super().__init__()
+
+        # 分支 1：Dilated Conv
+        self.branch1_dilated = DilatedCBS(c1 // 4, c1 // 4, k=3, s=1, d=2)  # 空洞卷积
+
+        # 分支 2：两个 Bottleneck (k=3)
+        self.branch2_bottlenecks = nn.Sequential(
+            Bottleneck(c1 // 2, c1 // 2, shortcut, k=(3, 3), e=0.5),
+            Bottleneck(c1 // 2, c1 // 2, shortcut, k=(3, 3), e=0.5),
+        )
+
+        # 通道打乱
+        self.shuffle = SB(groups=2)
+
+        # 输出卷积
+        self.out_conv = Conv(c1, c2, 1, 1)
+
+    def forward(self, x):
+        # Split 输入通道为两份
+        x1, x2 = x.chunk(2, dim=1)
+
+        # 分支1：Split → 空洞卷积 + 拼接
+        x1a, x1b = x1.chunk(2, dim=1)  # 再次通道切分
+        b1 = self.branch1_dilated(x1a)  # 空洞卷积
+        b1 = torch.cat([b1, x1b], dim=1)  # 拼接
+
+        # 分支2：两个 Bottleneck
+        b2 = self.branch2_bottlenecks(x2)
+
+        # Concatenate
+        y = torch.cat((b1, b2), dim=1)
+
+        # 通道 shuffle
+        y = self.shuffle(y)
+
+        # 输出
+        return self.out_conv(y)
+
+class ResidualOp(nn.Module):
+    def __init__(self, in_channels, op='add',a=0.3):
+        super().__init__()
+        self.op = op
+        self.a = a
+        # 若输入通道需调整（可选）
+        #self.adjust = nn.Conv2d(in_channels, in_channels, 1) if in_channels else None
+
+    def forward(self, x):
+        # 输入x是包含两个特征层的列表（来自不同层）
+        x1, x2 = x[0], x[1]
+        #if self.adjust:
+        #    x2 = self.adjust(x2)
+        if self.op == 'add':
+            return x1 + x2 * self.a
+        elif self.op == 'sub':
+            return x1 - x2 * self.a
 
 class SB(nn.Module):
 
-    def __init__(self, groups=4):
+    def __init__(self, groups=2):
         super().__init__()
         self.groups = groups
+        # self.cv1 = Conv(c1, c2, 1,1)
+        # self.bn = nn.BatchNorm2d(out_channels)
+        # self.act = nn.SiLU()
+        
     def forward(self, x):
+        # x = self.cv1(x)
         batch_size, C, H, W = x.size()
         x = x.view(batch_size, self.groups, C//self.groups, H, W)
         x = x.permute(0, 2, 1, 3, 4).contiguous()  # 组间混洗

@@ -12,7 +12,7 @@ scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call 
   x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
 
 # YOLO11n backbone
-# 此版本由yolo11-SB改进而来，主要改动为：二倍上采样模块都替换为dysampl
+# 此版本是对比实验，剔除了concat拼接上采样后深度特征图的部分以及residual部分
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
@@ -29,49 +29,45 @@ backbone:
 
 # YOLO11n head
 head:
-  - [ -1 , 1 , DySample, [2] ]
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 6], 1, Concat, [1]] # cat backbone P4
   - [-1, 2, C3k2, [512, True]] # 13 (p4/16)
 
-  - [ -1 , 1 , DySample, [2] ]
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 4], 1, Concat, [1]] # cat backbone P3
   - [-1, 2, C3k2, [256, False]] # 16 (P3/8-small)
 
-  - [ -1 , 1 , DySample, [2] ]
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 2], 1, Concat, [1]] # cat backbone P2
   - [-1, 2, C3k2, [128, False]] # 19 (P2/4-small)
 
 # 第二轮
 
-  - [13, 1, nn.Upsample, [None, 4, "nearest"]] #[13, 1, nn.Upsample, [None, 4, "nearest"]] # 20 p4/4  [ 13 , 1 , DySample, [4] ] 无法四倍上采样
-  - [[-1, 19], 1, Concat, [1]]
-  - [-1, 1, Conv, [256, 3, 2 ] ]
-  - [-1, 2, C3k2, [512, True]] # 23 p3/8
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [[-1, 16], 1, Concat, [1]] # cat head P3
+  - [-1, 2, C3k2, [256, False]] # 22 (P3/8-medium)
 
-  - [[-1, 4], 1, Concat, [1]]
-  - [-1, 1, SB, [2]] # 添加SB模块————————
-  - [ -1, 2, C3k2, [256, False]] #在这之前可能需要添加SB模块
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 13], 1, Concat, [1]] # cat head P4
+  - [-1, 2, C3k2, [512, True]] # 25 (P4/16-large)
 
-  - [ -1 , 1 , DySample, [2] ] #[ -1 , 1 , DySample, [2] ] #[-1, 1, nn.Upsample, [None, 2, "nearest"]] #27 /4
-  - [[2, 19], 1, Concat, [1]]
-  - [[-1, 27], 1, Concat, [1]]
-  - [-1, 1, SB, [2]] #30 添加SB模块，group设置为2————————
-  - [-1, 2, C3k2, [256, False]] # 31 (P2/4)
+
+  # - [13, 1, nn.Upsample, [None, 4, "nearest"]] #[13, 1, nn.Upsample, [None, 4, "nearest"]] # 20 p4/4  [ 13 , 1 , DySample, [4] ] 无法四倍上采样
+  # - [[-1, 19], 1, Concat, [1]]
+  # - [-1, 1, Conv, [256, 3, 2 ] ]
+  # - [-1, 2, C3k2, [512, True]] # 23 
+
+  # - [[-1, 4], 1, Concat, [1]]
+  # - [ -1, 2, C3k2, [256, False]] #25 p3/8
+
+  # - [ 23, 1, Conv, [ 256, 3, 2 ] ]
+  # - [ -1, 2, C3k2, [ 512, False]] # 27 p4 
 
 # 第三轮
 
-  - [[-1, 20], 1, Concat, [1]]
-  - [ -1, 1, Conv, [ 128, 1, 1 ] ]
-  # - [[19, 33], 1, ResidualOp, [128,'sub']]
-  #- [ -1, 2, C3k2, [ 128, False ] ] #p2 33
-  #- [ -1 , 1 , DySample, [0] ] #33
+  # - [ 27, 1, Conv, [ 256, 1, 1 ] ]
+  # - [ -1, 1, nn.Upsample, [None, 4, "nearest"]]
+  # - [ -1, 2, C3k2, [ 128, False]]
+  # - [[19, 30], 1, ResidualOp, [128,'sub']] #30
 
-  - [ -1, 1, Conv, [ 128, 3, 2 ] ]
-  - [[-1, 4], 1, Concat, [1]]
-  - [ -1, 2, C3k2, [ 256, False ] ] # 36 p3 /8
-
-
-  - [ -1, 1, Conv, [ 256, 3, 2 ] ]
-  - [-1, 2, C3k2, [512, False]] # 38 (P4/16)
-
-  - [[33, 36, 38], 1, Detect, [nc]] # Detect(P2, P3, P4)
+  - [[19, 22, 25], 1, Detect, [nc]] # Detect(P2, P3, P4)

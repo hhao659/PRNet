@@ -1,7 +1,7 @@
 from ultralytics import YOLO, checks, hub
 checks()
 
-hub.login('6bdf707bab845ab6ce7ff34ba396a9b90d3f7cd731')
+hub.login('85503346f98c564248bba2c316446aae7a7242acd0')
 
-model = YOLO('https://hub.ultralytics.com/models/cG1kEK2ejSxvDHhUxrwu')
+model = YOLO('https://hub.ultralytics.com/models/9lDeUFJ9meXmVYXBynLy')
 results = model.train()

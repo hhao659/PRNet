@@ -11,9 +11,8 @@ scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call 
   l: [1.00, 1.00, 512] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
   x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
 
-#将p2层换成更浅的19层 
-
 # YOLO11n backbone
+# 此版本由yolo11-S3进行修改而来，主要修改最后一轮的模型结构,对输出检测头的特征层进行了修改，旨在保持精度的同时降低参数量 增加了p2检测头的通道数
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
@@ -44,33 +43,39 @@ head:
 
 # 第二轮
 
-  - [12, 1, nn.Upsample, [None, 4, "nearest"]] # 20 p4/4
+  - [ 12, 1, Conv, [ 64, 1, 1 ] ] #20250404 改动：添加1*1卷积层降低计算量
+  - [-1, 1, nn.Upsample, [None, 4, "nearest"]] # 21 p4/4
   - [[-1, 19], 1, Concat, [1]]
   - [-1, 1, Conv, [256, 3, 2 ] ]
-  - [-1, 2, C3k2, [512, True]] # 23 p3/8
+  - [-1, 2, C3k2, [512, True]] # 24 p3/8
 
   - [[-1, 4], 1, Concat, [1]]
   - [ -1, 2, C3k2, [256, False]]
 
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # /4
   - [[2, 19], 1, Concat, [1]]
-  - [[-1, 26], 1, Concat, [1]]
-  - [-1, 2, C3k2, [256, False]] # 29 (P2/4)
+  - [[-1, 27], 1, Concat, [1]] #动 26-> 27
+  - [-1, 2, C3k2, [256, False]] # 30 (P2/4)
 
 # 第三轮
 
-  - [[-1, 20], 1, Concat, [1]]
+  - [[-1, 21], 1, Concat, [1]] #动 20 ->21
   - [ -1, 1, Conv, [ 128, 3, 2 ] ]
   - [ -1, 1, Conv, [ 256, 3, 2 ] ]
-  - [ -1, 2, C3k2, [ 512, False ] ] # 33 p4 /16
+  - [ -1, 2, C3k2, [ 512, False ] ] # 34 p4 /16
 
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # /8
   - [[-1, 4], 1, Concat, [1]]
-  - [ -1, 2, C3k2, [ 256, False ] ] # 36 p3 /8
+  - [ -1, 2, C3k2, [ 256, False ] ] # 37 p3 /8
 
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 37 /4
-  - [[2, 29], 1, Concat, [1]]
-  - [[-1, 37], 1, Concat, [1]]
-  - [-1, 2, C3k2, [128, False]] # 40 (P2/4-small)
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 38 /4
+  - [[2, 30], 1, Concat, [1]] #动
+  - [[-1, 38], 1, Concat, [1]] #动
+  - [-1, 2, C3k2, [128, False]] # 41 (P2/4-small)
 
-  - [[40, 36, 33], 1, Detect, [nc]] # Detect(P2, P3, P4)
+  - [[41, 37, 34], 1, Detect, [nc]] # Detect(P2, P3, P4) 动
+
+
+  ## 实验日志
+  ## #20250404 改动：四倍上采样前添加1*1卷积层降低对12层的计算量  结果效果与使用13层一样 结论：效果与通道数更紧密，而与是否是原特征不是很相关
+  ## 1*1卷积层换到上采样后 并且增加上采样的通道数
