@@ -52,8 +52,77 @@ __all__ = (
     "SB",
     "ResidualOp",
     "DilatedCBS",
-    "C3DFormer"
+    "C3DFormer",
+    "MaxPool",
+    "AvgPool",
+    "GEBlock",
+
 )
+
+class GEBlock(nn.Module):
+    def __init__(self, c1, c2):
+        super().__init__()
+        # 主分支
+        self.branch1 = nn.Sequential(
+            Conv(c1, 32, k=1, s=1),
+          #  Conv(c2, c2, k=3, s=2)  
+        )
+
+        # 灰度分支
+        self.to_gray = ToGray()
+        self.branch2 = nn.Sequential(
+            Conv(1, 32, k=1, s=1),
+          #  Conv(c2, c2, k=3, s=2)
+        )
+        self.fuse = Conv(c2, c2, k=3, s=2)
+
+    def forward(self, x):
+        x1 = self.branch1(x)
+        input_dtype = x.dtype  # 保存原始数据类型
+        
+        # 修复点：添加 device_type='cuda'
+        with torch.autocast(device_type='cuda', enabled=False):  # 禁用混合精度
+            gray = self.to_gray(x).to(input_dtype)  # 强制类型匹配
+        
+        x2 = self.branch2(gray)
+        
+
+        # 拼接
+        return self.fuse(torch.cat([x1, x2], dim=1))  
+
+
+class ToGray(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # 使用与输入相同类型的权重
+        self.weight = nn.Parameter(torch.tensor([0.299, 0.587, 0.114], dtype=torch.float32), requires_grad=False)
+
+    def forward(self, x):
+        # 保持数据类型一致
+        weight = self.weight.to(x.dtype)  # 关键！同步数据类型
+        return torch.sum(x * weight.view(1, 3, 1, 1), dim=1, keepdim=True)
+
+
+
+
+class MaxPool(nn.Module):
+    def __init__(self, kernel_size=2, stride=None, padding=0):
+        super().__init__()
+        stride = stride or kernel_size
+        self.pool = nn.MaxPool2d(kernel_size, stride, padding)
+
+    def forward(self, x):
+        return self.pool(x)
+
+
+class AvgPool(nn.Module):
+    def __init__(self, kernel_size=2, stride=None, padding=0):
+        super().__init__()
+        stride = stride or kernel_size
+        self.pool = nn.AvgPool2d(kernel_size, stride, padding)
+
+    def forward(self, x):
+        return self.pool(x)
 
 class DilatedCBS(nn.Module):
     """Dilated Convolution with BN + SiLU."""

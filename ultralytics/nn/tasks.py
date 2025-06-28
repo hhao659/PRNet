@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 
 from ultralytics.nn.modules.dysample import DySample
+from ultralytics.nn.modules.idea import SliceSamp,SliceUpsamp
 
 from ultralytics.nn.modules import (
     AIFI,
@@ -67,6 +68,16 @@ from ultralytics.nn.modules import (
     ResidualOp,
     DilatedCBS,
     C3DFormer,
+    MaxPool,
+    AvgPool,
+    GEBlock,
+    Pzconv,
+    FCM_3,
+    FCM_2,
+    FCM_1,
+    FCM,
+    Down
+
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -79,7 +90,7 @@ from ultralytics.utils.loss import (
     v8SegmentationLoss,
 )
 from ultralytics.utils.ops import make_divisible
-from ultralytics.utils.plotting import feature_visualization
+from ultralytics.utils.plotting import feature_visualization,feature_visualization_merged
 from ultralytics.utils.torch_utils import (
     fuse_conv_and_bn,
     fuse_deconv_and_bn,
@@ -137,7 +148,7 @@ class BaseModel(nn.Module):
 
     def _predict_once(self, x, profile=False, visualize=False, embed=None):
         """
-        Perform a forward pass through the network.
+        Perform a forward pass throughs the network.
 
         Args:
             x (torch.Tensor): The input tensor to the model.
@@ -158,6 +169,7 @@ class BaseModel(nn.Module):
             y.append(x if m.i in self.save else None)  # save output
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
+                feature_visualization_merged(x, m.type, m.i, save_dir=visualize, merge_mode="sum") 
             if embed and m.i in embed:
                 embeddings.append(nn.functional.adaptive_avg_pool2d(x, (1, 1)).squeeze(-1).squeeze(-1))  # flatten
                 if m.i == max(embed):
@@ -969,6 +981,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 with contextlib.suppress(ValueError):
                     args[j] = locals()[a] if a in locals() else ast.literal_eval(a)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
+        
         if m in {
             Classify,
             Conv,
@@ -1004,6 +1017,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SCDown,
             C2fCIB,
             C3DFormer,
+            MaxPool,
+            AvgPool,
+            SliceUpsamp,
+            Pzconv,
+            FCM_3,
+            FCM_2,
+            FCM_1,
+            FCM,
+            Down
         }:
             c1, c2 = ch[f], args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -1037,8 +1059,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
-        # 在parse_model函数中添加模块名映射
-    
+        elif m is MaxPool:
+            kernel_size,stride = args[0],args[1]
+        elif m is AvgPool:
+            kernel_size,stride = args[0],args[1]
         elif m is ResidualOp:
             in_channels,op = args[0],args[1]
         elif m is SB:
@@ -1075,6 +1099,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = ch[f[-1]]
         elif m is DySample:
             args = [ch[f]] #scale_factor = args[0] #args = [ch[f]]
+        elif m is GEBlock:
+            c1,c2 = args[0],args[1]
+        elif m is SliceSamp:
+            c1,c2  = args[0],args[1]
+            #c1,c2  = args[0],args[1]
+        #elif m is UnshuffleConvSamp:
+            #c1,c2 = args[0],args[1]
         else:
             c2 = ch[f]
 

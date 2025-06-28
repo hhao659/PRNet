@@ -60,6 +60,10 @@ from .block import (
     ResidualOp,
     DilatedCBS,
     C3DFormer,
+    MaxPool,
+    AvgPool,
+    GEBlock,
+
 )
 from .conv import (
     CBAM,
@@ -75,6 +79,12 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    Pzconv,
+    FCM_3,
+    FCM_2,
+    FCM_1,
+    FCM,
+    Down,
 )
 from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -161,5 +171,14 @@ __all__ = (
     "Attention",
     "PSA",
     "ESP",
-    "ResidualOp"
+    "ResidualOp",
+    "MaxPool",
+    "AvgPool",
+    "GEBlock",
+    'Pzconv',
+    'FCM',
+    'Pzconv',
+    'FCM_3',
+    'FCM_2',
+    'Down'
 )

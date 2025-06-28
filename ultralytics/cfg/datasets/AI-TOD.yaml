@@ -1,0 +1,21 @@
+# Dataset root directory
+path: /data/home/zph/TFNet/datasets/AI-TOD
+
+# Train, validation, and test images and labels relative to 'path'
+# 注意：这里的 train/images 和 val/images 指的是你的图像文件所在的实际路径
+# 根据你之前提供的图，图像可能在 AI-TOD/train/images 和 AI-TOD/val/images 下
+train: train/images  # 或者你的训练图像所在的目录
+val: val/images    # 或者你的验证图像所在的目录
+test: test/coco/test2017.txt  # 或者你的测试图像所在的目录 (如果适用)
+
+# Path to YOLO format labels (relative to 'path')
+# 转换后的标签位于 output_yolo_labels_root 下，需要计算其相对于 dataset_root 的路径
+train_labels: yolo_labels/train
+val_labels: yolo_labels/val
+test_labels: yolo_labels/test # 如果转换了测试集标签
+
+# Number of classes
+nc: 8
+
+# Class names
+names: ['airplane', 'bridge', 'storage-tank', 'ship', 'swimming-pool', 'vehicle', 'person', 'wind-mill']

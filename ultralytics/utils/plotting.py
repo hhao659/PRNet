@@ -1375,3 +1375,43 @@ def feature_visualization(x, module_type, stage, n=32, save_dir=Path("runs/detec
             plt.savefig(f, dpi=300, bbox_inches="tight")
             plt.close()
             np.save(str(f.with_suffix(".npy")), x[0].cpu().numpy())  # npy save
+            
+
+def feature_visualization_merged(x, module_type, stage, merge_mode="mean", save_dir=Path("runs/detect/exp")):
+    """
+    Visualize merged feature maps of a given model module during inference.
+    Args:
+        x (torch.Tensor): Features to be visualized.
+        module_type (str): Module type.
+        stage (int): Module stage within the model.
+        merge_mode (str, optional): Mode to merge channels. Defaults to "mean". Options: "mean", "sum", "max".
+        save_dir (Path, optional): Directory to save results. Defaults to Path('runs/detect/exp').
+    """
+    for m in {"Detect", "Segment", "Pose", "Classify", "OBB", "RTDETRDecoder"}:  # all model heads
+        if m in module_type:
+            return
+    if isinstance(x, torch.Tensor):
+        _, channels, height, width = x.shape  # batch, channels, height, width
+        if height > 1 and width > 1:
+            # Save path
+            save_dir.mkdir(parents=True, exist_ok=True)
+            f = save_dir / f"stage{stage}_{module_type.split('.')[-1]}_merged_features.png"
+ 
+            # Merge channels
+            if merge_mode == "mean":
+                merged_feature = x[0].mean(dim=0).cpu()  # Channel-wise mean
+            elif merge_mode == "sum":
+                merged_feature = x[0].sum(dim=0).cpu()  # Channel-wise sum
+            elif merge_mode == "max":
+                merged_feature, _ = x[0].max(dim=0)  # Channel-wise max
+                merged_feature = merged_feature.cpu()
+            else:
+                raise ValueError(f"Unsupported merge_mode: {merge_mode}. Choose from 'mean', 'sum', 'max'.")
+ 
+            # Visualize
+            plt.figure(figsize=(6, 6))
+            plt.imshow(merged_feature, cmap="viridis")  # Use colormap for visualization
+            plt.axis("off")
+            plt.title(f"Stage {stage}: {module_type} (Merged: {merge_mode})")
+            plt.savefig(f)
+            plt.close()

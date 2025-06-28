@@ -163,6 +163,14 @@ class v8DetectionLoss:
         h = model.args  # hyperparameters
 
         m = model.model[-1]  # Detect() module
+        #detect_module = None
+        #for module in model.modules():
+        #    if isinstance(module, Detect):  # 假设 Detect 是检测头类
+        #        detect_module = module
+        #        break
+        #if detect_module is None:
+        #    raise ValueError("No Detect module found in the model. Please ensure the model includes a Detect head.")
+        
         self.bce = nn.BCEWithLogitsLoss(reduction="none")
         self.hyp = h
         self.stride = m.stride  # model strides
