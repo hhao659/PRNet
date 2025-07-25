@@ -15,8 +15,8 @@ scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call 
 # 统一：Re + head
 backbone:
   # [from, repeats, module, args]
-  - [-1, 1, SliceSamp, [3, 64]] # 0-P1/2
-  - [-1, 1, SliceSamp, [64, 128]] # 1-P2/4
+  - [-1, 1, ESSamp, [3, 64]] # 0-P1/2
+  - [-1, 1, ESSamp, [64, 128]] # 1-P2/4
   - [-1, 2, C3k2, [256, False, 0.25]]
   - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
   - [-1, 2, C3k2, [512, False, 0.25]]

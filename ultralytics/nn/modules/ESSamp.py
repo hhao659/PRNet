@@ -27,9 +27,9 @@ class DSConv(nn.Module):  # EnhancedDepthwiseConv
 #            x[..., 1::2, 1::2],
 #        ], dim=1)
 
-class SliceSamp(nn.Module):
+class ESSamp(nn.Module):
     def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=2):
-        super(SliceSamp, self).__init__()
+        super(ESSamp, self).__init__()
         self.dsconv = DSConv(c1 * 4, c2, k=k, s=s, act=act,depth_multiplier=depth_multiplier)
         self.slices = nn.PixelUnshuffle(2)
         #self.slices = PixelSliceConcat()
@@ -39,17 +39,3 @@ class SliceSamp(nn.Module):
         x = self.slices(x)
         return self.dsconv(x)
 
-class SliceUpsamp(nn.Module):
-    def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=1):
-        super(SliceUpsamp, self).__init__()
-        self.dsconv = DSConv(c1 // 4, c2, k=k, s=s, act=act, depth_multiplier=depth_multiplier)
-
-    def forward(self, x):
-        b, c, h, w = x.shape
-        c_div4 = c // 4
-        z = torch.zeros(b, c_div4, h * 2, w * 2, device=x.device, dtype=x.dtype)
-        z[..., ::2, ::2] = x[:, :c_div4, :, :]
-        z[..., 1::2, ::2] = x[:, c_div4:2*c_div4, :, :]
-        z[..., ::2, 1::2] = x[:, 2*c_div4:3*c_div4, :, :]
-        z[..., 1::2, 1::2] = x[:, 3*c_div4:, :, :]
-        return self.dsconv(z)

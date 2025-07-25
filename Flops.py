@@ -6,7 +6,7 @@ from thop import profile, clever_format
 #from ultralytics.nn.modules.idea import SliceSamp,SliceUpsamp,DSConv,PixelSliceConcat
 
 class DSConv(nn.Module):  # EnhancedDepthwiseConv
-    def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=1):
+    def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=2):
         super(DSConv, self).__init__()
 
         self.block = nn.Sequential(
@@ -30,10 +30,9 @@ class DSConv(nn.Module):  # EnhancedDepthwiseConv
 #            x[..., 1::2, 1::2],
 #        ], dim=1)
 
-class SliceSamp(nn.Module):
-    def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=1):
-        super(SliceSamp, self).__init__()
-        #self.stride = 2 * s
+class ESSamp(nn.Module):
+    def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=2):
+        super(ESSamp, self).__init__()
         self.dsconv = DSConv(c1 * 4, c2, k=k, s=s, act=act,depth_multiplier=depth_multiplier)
         self.slices = nn.PixelUnshuffle(2)
         #self.slices = PixelSliceConcat()
@@ -42,21 +41,6 @@ class SliceSamp(nn.Module):
     def forward(self, x):
         x = self.slices(x)
         return self.dsconv(x)
-
-class SliceUpsamp(nn.Module):
-    def __init__(self, c1, c2, k=3, s=1, act=True, depth_multiplier=1):
-        super(SliceUpsamp, self).__init__()
-        self.dsconv = DSConv(c1 // 4, c2, k=k, s=s, act=act, depth_multiplier=depth_multiplier)
-
-    def forward(self, x):
-        b, c, h, w = x.shape
-        c_div4 = c // 4
-        z = torch.zeros(b, c_div4, h * 2, w * 2, device=x.device, dtype=x.dtype)
-        z[..., ::2, ::2] = x[:, :c_div4, :, :]
-        z[..., 1::2, ::2] = x[:, c_div4:2*c_div4, :, :]
-        z[..., ::2, 1::2] = x[:, 2*c_div4:3*c_div4, :, :]
-        z[..., 1::2, 1::2] = x[:, 3*c_div4:, :, :]
-        return self.dsconv(z)
 
 
 # 自定义 FLOPs 计算函数 for DSConv
@@ -146,11 +130,11 @@ custom_ops = {
 }
 
 # 指定您的模型 YAML 文件路径
-model_yaml_path = '/data/home/zph/TFNet/No-P3FuYong.pt'
+model_yaml_path = '/home/i/PRNet/ultralytics/cfg/models/11/yolo11l-PRNet.yaml'
 
 # 指定用于 FLOPs 计算的图像尺寸
 # 这应该与您训练时使用的 imgsz 参数一致，例如 640
-input_img_size = 640
+input_img_size = 1024
 input_tensor = torch.randn(1, 3, input_img_size, input_img_size) # batch size 为 1
 
 try:

@@ -1,0 +1,65 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# RT-DETR-ResNet50 object detection model with P3-P5 outputs.
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov8n-cls.yaml' will call yolov8-cls.yaml with scale 'n'
+  # [depth, width, max_channels]
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, ResNetLayer, [3, 64, 1, True, 1]] # 0
+  - [-1, 1, ResNetLayer, [64, 64, 1, False, 3]] # 1
+  - [-1, 1, ResNetLayer, [256, 128, 2, False, 4]] # 2
+  - [-1, 1, ResNetLayer, [512, 256, 2, False, 6]] # 3
+  - [-1, 1, ResNetLayer, [1024, 512, 2, False, 3]] # 4
+
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 5
+  - [-1, 1, AIFI, [1024, 8]]
+  - [-1, 1, Conv, [256, 1, 1]] # 7
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  #- [3, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 9
+  - [[-1, 3], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256]] # 10
+  #- [-1, 1, Conv, [256, 1, 1]] # 12
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  #- [2, 1, Conv, [128, 1, 1, None, 1, 1, False]] # 14
+  - [[-1, 2], 1, Concat, [1]] # cat backbone P4
+  - [-1, 3, RepC3, [128]] # X3 (13), fpn_blocks.1
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  #- [1, 1, Conv, [64, 1, 1, None, 1, 1, False]] # 18
+  - [[-1, 1], 1, Concat, [1]] # cat backbone P4
+  - [-1, 3, RepC3, [64]] # X2 (16), fpn_blocks.1
+
+#第二轮
+
+  - [-1, 1, Conv, [128, 3, 2]] # 17, downsample_convs.0
+  - [[-1, 2], 1, Concat, [1]] # cat Y4
+  - [-1, 3, RepC3, [128]] # F4 (19), pan_blocks.0
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 1], 1, Concat, [1]] # cat backbone P4
+  - [[-1, 16], 1, Concat, [1]]
+  - [-1, 3, RepC3, [128]] # X2 (23), fpn_blocks.1
+  
+#第三轮
+  
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [-1, 3, RepC3, [256]] #26
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 2], 1, Concat, [1]]
+  - [-1, 3, RepC3, [128]] # X2 (29), fpn_blocks.1
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 1], 1, Concat, [1]]
+  - [[-1, 23], 1, Concat, [1]]
+  - [-1, 3, RepC3, [64]] # X2 (33), fpn_blocks.1
+
+  - [[33, 29, 26], 1, RTDETRDecoder, [nc]] # Detect(P2, P3, P4)

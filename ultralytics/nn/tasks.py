@@ -10,8 +10,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-from ultralytics.nn.modules.dysample import DySample
-from ultralytics.nn.modules.idea import SliceSamp,SliceUpsamp
+from ultralytics.nn.modules.ESSamp import ESSamp
 
 from ultralytics.nn.modules import (
     AIFI,
@@ -1019,7 +1018,6 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3DFormer,
             MaxPool,
             AvgPool,
-            SliceUpsamp,
             Pzconv,
             FCM_3,
             FCM_2,
@@ -1065,10 +1063,6 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             kernel_size,stride = args[0],args[1]
         elif m is ResidualOp:
             in_channels,op = args[0],args[1]
-        elif m is SB:
-            # c1 = ch[f]
-            # c2= args[1]
-            groups = args[0]  #args = [ch[f]] #标记
         elif m is AIFI:
             args = [ch[f], *args]
         elif m in {HGStem, HGBlock}:
@@ -1097,15 +1091,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, c2, *args[1:]]
         elif m is CBFuse:
             c2 = ch[f[-1]]
-        elif m is DySample:
-            args = [ch[f]] #scale_factor = args[0] #args = [ch[f]]
         elif m is GEBlock:
             c1,c2 = args[0],args[1]
-        elif m is SliceSamp:
+        elif m is ESSamp:
             c1,c2  = args[0],args[1]
-            #c1,c2  = args[0],args[1]
-        #elif m is UnshuffleConvSamp:
-            #c1,c2 = args[0],args[1]
         else:
             c2 = ch[f]
 
