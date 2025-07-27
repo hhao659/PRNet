@@ -1,0 +1,16 @@
+# UAVDT.yaml - Configuration for Ultralytics YOLO training on UAVDT dataset
+
+# Dataset root directory
+path: ../datasets/UAVDT
+
+# Train and validation images relative to 'path'
+# Note: The 'train' split uses images from UAVDT/train/images, and 'val' uses images from UAVDT/test/images as the validation set.
+# Labels are assumed to be in the corresponding 'labels' directories at the same level (e.g., UAVDT/train/labels).
+train: UAVDT-train/images
+val: UAVDT-test/images
+
+# Number of classes
+nc: 3
+
+# Class names (in order of class IDs: 0=car, 1=truck, 2=bus, 3=vehicle)
+names: ['car', 'truck', 'bus']
