@@ -5,8 +5,11 @@ Small object detection in aerial images suffers from severe information degradat
 
 Please follow the YOLO11 installation instructions.
 
-train CLI:
-yolo detect train model=yolo11s-PRNet.yaml data=VisDrone.yaml epochs=350 pretrained=False batch=16 patience=50 device=0
+PRNet train CLI:
+yolo detect train model=yolo11s-PRNet.yaml data=VisDrone.yaml epochs=350 pretrained=False batch=8 patience=50 device=0
+
+PRNet-L train CLI:
+yolo detect train model=yolo11l-PRNet.yaml data=VisDrone.yaml epochs=350 pretrained=False batch=8 patience=50 device=0
 
 val:
 yolo detect val model=PRNet.engine data=VisDrone.yaml device=0 split=val
