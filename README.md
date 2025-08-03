@@ -1,5 +1,5 @@
 # PRNet
-Detecting small objects in aerial images remains a significant challenge in computer vision. This difficulty primarily arises from the small size of targets and complex backgrounds, leading to critical information loss during feature extraction, which severely limits detection performance. While existing methods predominantly employ post-processing enhancement strategies to compensate for lost detail information, they struggle to address the core issue of information degradation at its source. For targets with severely limited pixel representation, we contend that maximizing high-resolution detail retention from the initial processing stages is critical for performance gains. To this end, we propose PRNet, a novel detection framework designed to preserve original high-resolution information through two key innovations: (1) A Progressive Refinement Neck (PRN) that iteratively enhances spatial details via multi-stage backbone feature reuse, and (2) An Enhanced SliceSamp (ESSamp) module that minimizes detail degradation during downsampling through optimized spatial rearrangement and depthwise convolution operations. Extensive experiments on the VisDrone and AI-TOD datasets demonstrate that PRNet consistently outperforms state-of-the-art methods under equivalent computational constraints, achieving an optimal accuracy-efficiency balance. These results validate the effectiveness of our architecture-first approach to information preservation, providing a new solution for efficient small object detection.
+Small object detection in aerial images suffers from severe information degradation during feature extraction due to limited pixel representations, where shallow spatial details fail to align effectively with semantic information, leading to frequent misses and false positives. Existing FPN-based methods attempt to mitigate these losses through post-processing enhancements, but the reconstructed details often deviate from the original image information, impeding their fusion with semantic content. To address this limitation, we propose PRNet, a real-time detection framework that prioritizes the preservation and efficient utilization of primitive shallow spatial features to enhance small object representations. PRNet achieves this via two modules:the Progressive Refinement Neck (PRN) for spatial-semantic alignment through backbone reuse and iterative refinement, and the Enhanced SliceSamp (ESSamp) for preserving shallow information during downsampling via optimized rearrangement and convolution. Extensive experiments on the VisDrone, AI-TOD, and UAVDT datasets demonstrate that PRNet outperforms state-of-the-art methods under comparable computational constraints, achieving superior accuracy-efficiency trade-offs.
 
 ![PRNet](images/PRNet.png)
 
@@ -9,7 +9,7 @@ train CLI:
 yolo detect train model=yolo11s-PRNet.yaml data=VisDrone.yaml epochs=350 pretrained=False batch=16 patience=50 device=0
 
 val:
-
+yolo detect val model=PRNet.engine data=VisDrone.yaml device=0 split=val
 
 Checkpoints:
-We provide the following checkpoints:
+We provide the following checkpoints: [PRNet](https://pan.baidu.com/s/1h6Eq34VsH_5k-Bg5ixeRuA?pwd=447t)
