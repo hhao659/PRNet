@@ -36,7 +36,7 @@ jobs:
           git config --global user.name "UltralyticsAssistant"
           git config --global user.email "web@ultralytics.com"
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           token: ${{ secrets._GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
