@@ -36,7 +36,7 @@ yolo detect val model=PRNet.engine data=VisDrone.yaml device=0 split=val
 
 ## Checkpoints
 
-We provide pre-trained model checkpoints for easy deployment:
+We provide model checkpoints for easy deployment:
 
 🔗 **[Download PRNet Checkpoints](https://pan.baidu.com/s/1h6Eq34VsH_5k-Bg5ixeRuA?pwd=447t)**
 
