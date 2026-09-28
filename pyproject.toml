@@ -114,7 +114,7 @@ solutions = [
 ]
 logging = [
     "comet", # https://docs.ultralytics.com/integrations/comet/
-    "tensorboard>=2.13.0",
+    "tensorboard>=2.21.0",
     "dvclive>=2.12.0",
 ]
 extra = [
